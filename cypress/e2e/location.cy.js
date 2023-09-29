@@ -2,23 +2,21 @@
 
 describe("share location", () => {
   beforeEach(() => {
-    cy.visit("/").then((win) => {
-      cy.stub(win.navigator.geolocation, "getCurrentPosition")
-        .as("getUserLocation")
-        .callsFake((cb) => {
-          setTimeout(() => {
-            cb({
-              coords: {
-                latitude: 43.5,
-                longitude: 32,
-              },
-            });
-          }, 100);
-        });
+    cy.fixture("user-location.json").as("userLoaction");
+    cy.get("@userLoaction").then((fakePostion) => {
+      cy.visit("/").then((win) => {
+        cy.stub(win.navigator.geolocation, "getCurrentPosition")
+          .as("getUserLocation")
+          .callsFake((cb) => {
+            setTimeout(() => {
+              cb(fakePostion);
+            }, 100);
+          });
 
-      cy.stub(win.navigator.clipboard, "writeText")
-        .as("shareLocation")
-        .resolves();
+        cy.stub(win.navigator.clipboard, "writeText")
+          .as("shareLocation")
+          .resolves();
+      });
     });
   });
 
@@ -34,5 +32,9 @@ describe("share location", () => {
     cy.get('[data-cy="get-loc-btn"]').click();
     cy.get('[data-cy="share-loc-btn"]').click();
     cy.get("@shareLocation").should("have.been.called");
+    cy.get("@shareLocation").should(
+      "have.been.calledWithMatch",
+      new RegExp(`${43.5}.*${32}.*${encodeURI("Jafar")}`)
+    );
   });
 });
